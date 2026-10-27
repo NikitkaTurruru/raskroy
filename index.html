@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Раскрой ЛДСП и МДФ</title>
+  <style>
+    :root{
+      --bg:#edf2f4;
+      --panel:#ffffff;
+      --panel-2:#f4f7f8;
+      --line:#d7e0e5;
+      --ink:#1b2a32;
+      --muted:#5f7279;
+      --accent:#1f7fd6;
+      --accent-soft:#e1f0ff;
+      --danger:#c63d3d;
+      --good:#2f9d63;
+      --shadow:0 10px 24px rgba(13,25,33,0.08);
+      --radius:12px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Segoe UI, Tahoma, sans-serif;}
+    body{min-height:100vh}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    input,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:#fff;color:var(--ink)}
+    select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);background-position:calc(100% - 18px) calc(50% - 3px),calc(100% - 12px) calc(50% - 3px);background-size:6px 6px;background-repeat:no-repeat;}
+    .app{max-width:980px;margin:0 auto;padding:18px 14px 40px}
+    .topbar h1{margin:0 0 16px;font-size:clamp(30px,4vw,42px);letter-spacing:.05em;text-transform:uppercase}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .tab{min-height:54px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;font-weight:700}
+    .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+    .panel.active{display:block}
+    .panel-header{margin-bottom:12px}
+    .panel-header h2{margin:0;font-size:1.2rem}
+    .toolbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+    .btn{border-radius:9px;border:1px solid var(--line);background:var(--panel);padding:12px 14px;color:var(--ink);font-weight:600}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.danger{background:#fff;border-color:rgba(198,61,61,.3);color:var(--danger)}
+    .table-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+    .table-head,.row{display:grid;grid-template-columns:42px 1.2fr 26px 1.2fr 0.75fr 64px 64px;gap:6px;align-items:stretch;padding:6px}
+    .table-head{background:#edf3f6;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:700}
+    .table-head > span,.row > *{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:7px}
+    .row{border-bottom:1px solid var(--line)}
+    .row:last-child{border-bottom:none}
+    .row .idx{background:#edf3f6;border:1px solid var(--line);font-weight:700}
+    .row input{width:100%;height:48px;border-radius:8px;border:1px solid var(--line);text-align:center}
+    .row .name{grid-column:2 / span 5;justify-content:flex-start;padding:0 10px}
+    .row .toggle{border:1px solid var(--line);background:var(--panel-2);font-size:1.2rem}
+    .row .toggle.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+    .stats{display:flex;flex-wrap:wrap;gap:18px;margin-top:16px;color:var(--muted);font-size:15px}
+    .card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:12px}
+    .two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    label{display:grid;gap:6px;color:var(--muted);font-size:14px}
+    .note{padding:10px 12px;border-left:4px solid #d38a1f;background:#fff8eb;border-radius:8px;color:#7a4c08}
+    .summary{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}
+    .pill{flex:1 1 150px;min-width:150px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:12px}
+    .pill strong{display:block;font-size:30px;line-height:1.1;margin-top:6px}
+    .sheet-card{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:12px}
+    .sheet-card h3{margin:0 0 10px;font-size:1rem}
+    .sheet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+    .sheet-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
+    .sheet-item small{display:block;color:var(--muted);margin-top:2px}
+    .sheet-svg{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .sheet-svg svg{display:block;width:100%;height:auto}
+    .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    @media (max-width:700px){
+      .tabs{grid-template-columns:1fr;gap:8px}
+      .toolbar,.two-col{grid-template-columns:1fr}
+      .table-head{display:none}
+      .row{grid-template-columns:42px 1fr 1fr 1fr;gap:8px}
+      .row .name{grid-column:2 / span 3}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1>Раскрой ЛДСП и МДФ</h1>
+    </header>
+
+    <nav class="tabs" aria-label="Разделы">
+      <button class="tab active" data-tab="parts" type="button">Детали</button>
+      <button class="tab" data-tab="settings" type="button">Параметры</button>
+      <button class="tab" data-tab="results" type="button">Результаты</button>
+    </nav>
+
+    <section class="panel active" id="parts">
+      <div class="panel-header">
+        <h2>Детали</h2>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn" id="sheet-button" type="button">Размер листа</button>
+        <button class="btn primary" id="add-row" type="button">Добавить строку</button>
+        <button class="btn danger" id="remove-row" type="button">Удалить строку</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head">
+          <span>#</span>
+          <span>Длина</span>
+          <span>×</span>
+          <span>Ширина</span>
+          <span>Шт.</span>
+          <span>Текстура</span>
+          <span>Кромка</span>
+        </div>
+        <div id="rows"></div>
+      </div>
+
+      <div class="stats">
+        <div>Количество деталей: <strong id="count-items">0</strong></div>
+        <div>Площадь деталей: <strong id="area-items">0 м²</strong></div>
+      </div>
+    </section>
+
+    <section class="panel" id="settings">
+      <div class="panel-header">
+        <h2>Параметры</h2>
+      </div>
+      <div class="card">
+        <label>Размер листа, мм
+          <select id="preset"></select>
+        </label>
+
+        <div class="two-col">
+          <label>Длина
+            <input id="sheet-width" type="number" min="1" step="1" />
+          </label>
+          <label>Ширина
+            <input id="sheet-height" type="number" min="1" step="1" />
+          </label>
+        </div>
+
+        <div class="two-col">
+          <label>Рез пилы, мм
+            <input id="kerf" type="number" min="0" step="1" />
+          </label>
+          <label>Обрезка кромки, мм
+            <input id="trim" type="number" min="0" step="1" />
+          </label>
+        </div>
+
+        <label>Направление текстуры
+          <select id="grain">
+            <option value="x">вдоль длинной стороны</option>
+            <option value="y">вдоль короткой стороны</option>
+          </select>
+        </label>
+
+        <div class="two-col">
+          <label>Кромка по умолчанию
+            <select id="default-edge">
+              <option value="0">0</option>
+              <option value="0.4">0,4</option>
+              <option value="0.8">0,8</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+          <label>Запас кромки, %
+            <input id="reserve" type="number" min="0" step="1" />
+          </label>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn primary" id="back-to-parts" type="button">К таблице деталей</button>
+      </div>
+    </section>
+
+    <section class="panel" id="results">
+      <div class="panel-header">
+        <h2>Результаты</h2>
+      </div>
+      <div id="notices"></div>
+      <div id="summary"></div>
+      <div id="edgebox"></div>
+      <div id="result-list"></div>
+
+      <div class="actions-row">
+        <button class="btn primary" id="copy-list" type="button">Копировать список резов</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "raskroy-standalone-v1";
+    const PRESETS = [[2800,2070],[2750,1830],[2440,1220],[2800,1220]];
+
+    const state = {
+      sheet: { L: 2750, W: 1830, kerf: 4, trim: 10, grain: "x" },
+      defEdge: 0.4,
+      reserve: 5,
+      rows: []
+    };
+
+    function defaultEdge(){ return {t: state.defEdge, r: state.defEdge, b: state.defEdge, l: state.defEdge}; }
+    function blankRow(){ return { id: uid(), l:0, w:0, q:0, g:1, name:"", e: defaultEdge() }; }
+    function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        const parsed = JSON.parse(raw);
+        if(!parsed || !Array.isArray(parsed.rows)) return null;
+        return parsed;
+      }catch(err){
+        return null;
+      }
+    }
+
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function init(){
+      const saved = loadState();
+      if(saved){
+        state.sheet = { ...state.sheet, ...saved.sheet };
+        state.defEdge = saved.defEdge ?? 0.4;
+        state.reserve = saved.reserve ?? 5;
+        state.rows = Array.isArray(saved.rows) ? saved.rows.map(r => ({...r, e: r.e || defaultEdge(), id: r.id || uid()})) : [];
+      }else{
+        state.rows = [
+          {id:uid(), l:529, w:658, q:2, g:1, name:"Полка", e:defaultEdge()},
+          {id:uid(), l:452, w:200, q:5, g:1, name:"Стойка", e:defaultEdge()},
+          {id:uid(), l:258, w:569, q:98, g:1, name:"Шкаф", e:defaultEdge()},
+          blankRow()
+        ];
+      }
+      bindEvents();
+      renderPreset();
+      render();
+    }
+
+    function bindEvents(){
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === tab));
+          document.querySelectorAll(".panel").forEach(panel => {
+            panel.classList.toggle("active", panel.id === tab.dataset.tab);
+          });
+        });
+      });
+
+      document.getElementById("sheet-button").addEventListener("click", () => {
+        document.querySelector('[data-tab="settings"]').click();
+      });
+
+      document.getElementById("add-row").addEventListener("click", () => {
+        state.rows.push(blankRow());
+        render();
+      });
+
+      document.getElementById("remove-row").addEventListener("click", () => {
+        const idx = [...state.rows].reverse().findIndex(row => row.l > 0 || row.w > 0 || row.q > 0 || row.name);
+        if(idx >= 0){
+          const real = state.rows.length - 1 - idx;
+          state.rows.splice(real, 1);
+        }
+        if(!state.rows.length) state.rows.push(blankRow());
+        render();
+      });
+
+      document.getElementById("back-to-parts").addEventListener("click", () => {
+        document.querySelector('[data-tab="parts"]').click();
+      });
+
+      document.getElementById("preset").addEventListener("change", (e) => {
+        const value = e.target.value;
+        if(value === "custom") return;
+        const [L, W] = value.split("x").map(Number);
+        state.sheet.L = L;
+        state.sheet.W = W;
+        render();
+      });
+
+      document.getElementById("sheet-width").addEventListener("input", (e) => {
+        state.sheet.L = Number(e.target.value) || 0;
+        renderPreset();
+        render();
+      });
+
+      document.getElementById("sheet-height").addEventListener("input", (e) => {
+        state.sheet.W = Number(e.target.value) || 0;
+        renderPreset();
+        render();
+      });
+
+      document.getElementById("kerf").addEventListener("input", (e) => {
+        state.sheet.kerf = Number(e.target.value) || 0;
+        render();
+      });
+
+      document.getElementById("trim").addEventListener("input", (e) => {
+        state.sheet.trim = Number(e.target.value) || 0;
+        render();
+      });
+
+      document.getElementById("grain").addEventListener("change", (e) => {
+        state.sheet.grain = e.target.value;
+        render();
+      });
+
+      document.getElementById("default-edge").addEventListener("change", (e) => {
+        state.defEdge = Number(e.target.value) || 0;
+        state.rows.forEach(row => {
+          if(isBlank(row)) row.e = defaultEdge();
+        });
+        render();
+      });
+
+      document.getElementById("reserve").addEventListener("input", (e) => {
+        state.reserve = Number(e.target.value) || 0;
+        render();
+      });
+
+      document.getElementById("copy-list").addEventListener("click", async () => {
+        const text = buildCutListText();
+        try{
+          await navigator.clipboard.writeText(text);
+          alert("Список резов скопирован.");
+        }catch{
+          window.prompt("Скопируйте список резов:", text);
+        }
+      });
+    }
+
+    function renderPreset(){
+      const select = document.getElementById("preset");
+      const current = `${state.sheet.L}x${state.sheet.W}`;
+      let html = PRESETS.map(([L,W]) => {
+        return `<option value="${L}x${W}" ${current === `${L}x${W}` ? "selected" : ""}>${L} × ${W}</option>`;
+      }).join("");
+      const hasCustom = !PRESETS.some(([L,W]) => `${L}x${W}` === current);
+      html += `<option value="custom" ${hasCustom ? "selected" : ""}>Свой размер</option>`;
+      select.innerHTML = html;
+
+      document.getElementById("sheet-width").value = state.sheet.L;
+      document.getElementById("sheet-height").value = state.sheet.W;
+      document.getElementById("kerf").value = state.sheet.kerf;
+      document.getElementById("trim").value = state.sheet.trim;
+      document.getElementById("grain").value = state.sheet.grain;
+      document.getElementById("default-edge").value = String(state.defEdge);
+      document.getElementById("reserve").value = state.reserve;
+    }
+
+    function render(){
+      renderPreset();
+      renderRows();
+      renderSummary();
+      renderResults();
+      saveState();
+    }
+
+    function isBlank(row){
+      return !(row.l > 0 || row.w > 0 || row.q > 0 || row.name);
+    }
+
+    function parseValue(v){
+      if(v === "" || v === null || v === undefined) return 0;
+      const n = Number(String(v).replace(",", "."));
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function renderRows(){
+      const root = document.getElementById("rows");
+      root.innerHTML = state.rows.map((row, index) => {
+        return `
+          <div class="row">
+            <div class="idx">${index + 1}</div>
+            <input type="text" value="${row.l || ""}" data-field="l" data-index="${index}" aria-label="Длина ${index + 1}" />
+            <span>×</span>
+            <input type="text" value="${row.w || ""}" data-field="w" data-index="${index}" aria-label="Ширина ${index + 1}" />
+            <input type="text" value="${row.q || ""}" data-field="q" data-index="${index}" aria-label="Количество ${index + 1}" />
+            <button class="toggle ${row.g ? "active" : ""}" type="button" data-toggle="grain" data-index="${index}">${row.g ? "▤" : "↻"}</button>
+            <button class="toggle ${hasEdge(row.e) ? "active" : ""}" type="button" data-toggle="edge" data-index="${index}">${hasEdge(row.e) ? "✦" : "◌"}</button>
+            <input class="name" type="text" value="${escapeHtml(row.name || "")}" data-field="name" data-index="${index}" placeholder="Название детали" />
+          </div>
+        `;
+      }).join("");
+
+      root.querySelectorAll("[data-field]").forEach(input => {
+        input.addEventListener("input", (e) => {
+          const field = e.target.dataset.field;
+          const index = Number(e.target.dataset.index);
+          const value = e.target.value;
+
+          if(field === "name"){
+            state.rows[index].name = value;
+          }else{
+            const v = parseValue(value);
+            state.rows[index][field] = v;
+          }
+          render();
+        });
+      });
+
+      root.querySelectorAll("[data-toggle='grain']").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const index = Number(btn.dataset.index);
+          state.rows[index].g = state.rows[index].g ? 0 : 1;
+          render();
+        });
+      });
+
+      root.querySelectorAll("[data-toggle='edge']").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const index = Number(btn.dataset.index);
+          state.rows[index].e = defaultEdge();
+          render();
+        });
+      });
+
+      const count = state.rows.reduce((sum,row) => {
+        if(row.l > 0 && row.w > 0){
+          return sum + (row.q > 0 ? row.q : 1);
+        }
+        return sum;
+      },0);
+
+      const area = state.rows.reduce((sum,row) => {
+        if(row.l > 0 && row.w > 0){
+          const q = row.q > 0 ? row.q : 1;
+          return sum + q * row.l * row.w;
+        }
+        return sum;
+      },0);
+
+      document.getElementById("count-items").textContent = count;
+      document.getElementById("area-items").textContent = `${(area / 1_000_000).toFixed(2).replace(".", ",")} м²`;
+    }
+
+    function hasEdge(e){
+      if(!e) return false;
+      return !!(e.t || e.r || e.b || e.l);
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      }[ch]));
+    }
+
+    function renderSummary(){
+      const { sheets } = packState();
+      const totalPlaced = sheets.reduce((sum, sheet) => sum + sheet.placed.length, 0);
+      const totalItems = state.rows.reduce((sum,row) => {
+        if(row.l > 0 && row.w > 0){
+          return sum + (row.q > 0 ? row.q : 1);
+        }
+        return sum;
+      }, 0);
+
+      const summary = document.getElementById("summary");
+      summary.innerHTML = `
+        <div class="pill">
+          Листов
+          <strong>${sheets.length}</strong>
+        </div>
+        <div class="pill">
+          Размещено
+          <strong>${totalPlaced}</strong>
+        </div>
+        <div class="pill">
+          Осталось
+          <strong>${Math.max(totalItems - totalPlaced, 0)}</strong>
+        </div>
+      `;
+    }
+
+    function renderResults(){
+      const notices = document.getElementById("notices");
+      const resultList = document.getElementById("result-list");
+      const edgebox = document.getElementById("edgebox");
+
+      const { sheets, warnings } = packState();
+      notices.innerHTML = warnings.length ? `<div class="note">${warnings.join("<br>")}</div>` : "";
+
+      edgebox.innerHTML = buildEdgeSummary();
+
+      if(!sheets.length){
+        resultList.innerHTML = `<div class="sheet-card"><h3>Нет данных</h3></div>`;
+        return;
+      }
+
+      resultList.innerHTML = sheets.map((sheet, idx) => {
+        const items = sheet.placed.map((p, i) => {
+          const row = p.item;
+          return `
+            <div class="sheet-item">
+              <strong>${row.name || `Деталь ${i+1}`}</strong>
+              <small>${row.l} × ${row.w} мм</small>
+              <small>Позиция: ${Math.round(p.x)}, ${Math.round(p.y)}</small>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="sheet-card">
+            <h3>Лист ${idx + 1}: ${state.sheet.L} × ${state.sheet.W}</h3>
+            <div class="sheet-grid">${items || "<div class='sheet-item'>Нет деталей</div>"}</div>
+            <div class="sheet-svg">${buildSheetSvg(sheet)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function buildEdgeSummary(){
+      const totals = {};
+      state.rows.forEach(row => {
+        if(!(row.l > 0 && row.w > 0)) return;
+        const q = row.q > 0 ? row.q : 1;
+        const e = row.e || defaultEdge();
+        [[e.t,row.l],[e.r,row.w],[e.b,row.l],[e.l,row.w]].forEach(([side,len]) => {
+          if(side > 0){
+            const key = String(side);
+            totals[key] = totals[key] || {side: side, mm: 0, count: 0};
+            totals[key].mm += len * q;
+            totals[key].count += q;
+          }
+        });
+      });
+
+      const arr = Object.values(totals).sort((a,b) => a.side - b.side);
+      if(!arr.length) return "";
+      return `
+        <div class="sheet-card">
+          <h3>Кромка</h3>
+          <div class="sheet-grid">
+            ${arr.map(item => `
+              <div class="sheet-item">
+                <strong>${item.side} мм</strong>
+                <small>${(item.mm / 1000).toFixed(2).replace(".", ",")} м</small>
+                <small>Сторон: ${item.count}</small>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function buildSheetSvg(sheet){
+      const W = state.sheet.L;
+      const H = state.sheet.W;
+      const trim = state.sheet.trim;
+      const usableW = W - 2 * trim;
+      const usableH = H - 2 * trim;
+
+      const rects = sheet.placed.map(p => {
+        const x = p.x + trim;
+        const y = p.y + trim;
+        return `
+          <rect x="${x}" y="${y}" width="${p.w}" height="${p.h}" fill="#d9ebff" stroke="#2f7ed8" stroke-width="1.2"></rect>
+          <text x="${x + p.w / 2}" y="${y + p.h / 2}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="#1b2a32">${p.item.name || "№"}</text>
+        `;
+      }).join("");
+
+      return `
+        <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="${W}" height="${H}" fill="#f6f9fb" stroke="#bfd1d9"></rect>
+          <rect x="${trim}" y="${trim}" width="${usableW}" height="${usableH}" fill="none" stroke="#bac8ce" stroke-dasharray="6 4"></rect>
+          ${rects}
+        </svg>
+      `;
+    }
+
+    function packState(){
+      const usableW = Math.max(0, state.sheet.L - 2 * state.sheet.trim);
+      const usableH = Math.max(0, state.sheet.W - 2 * state.sheet.trim);
+
+      const items = [];
+      state.rows.forEach((row, idx) => {
+        if(!(row.l > 0 && row.w > 0)) return;
+        const qty = row.q > 0 ? row.q : 1;
+        for(let i = 0; i < qty; i++){
+          items.push({
+            id: `${idx}:${i}`,
+            name: row.name || `Деталь ${idx + 1}`,
+            l: row.l,
+            w: row.w,
+            g: row.g,
+            e: row.e || defaultEdge()
+          });
+        }
+      });
+
+      if(!items.length){
+        return { sheets: [], warnings: ["Нет деталей для расчёта."] };
+      }
+
+      const sheets = [];
+      const warnings = [];
+      let currentSheet = {
+        free: [{x:0, y:0, w: usableW, h: usableH}],
+        placed: []
+      };
+
+      const sorted = [...items].sort((a,b) => Math.max(b.l,b.w) - Math.max(a.l,a.w));
+
+      for(const item of sorted){
+        let placed = false;
+
+        const rotations = item.g
+          ? [{w:item.l,h:item.w,rot:false},{w:item.w,h:item.l,rot:true}]
+          : [{w:item.l,h:item.w,rot:false}];
+
+        const candidates = [];
+        for(const area of currentSheet.free){
+          for(const rot of rotations){
+            if(rot.w <= area.w && rot.h <= area.h){
+              candidates.push({
+                area,
+                rot,
+                score: (area.w * area.h) - (rot.w * rot.h)
+              });
+            }
+          }
+        }
+
+        if(candidates.length){
+          candidates.sort((a,b) => a.score - b.score);
+          const best = candidates[0];
+          const {area, rot} = best;
+          currentSheet.placed.push({item, x:area.x, y:area.y, w:rot.w, h:rot.h, rot:rot.rot});
+          currentSheet.free = splitFreeArea(area, rot.w, rot.h, currentSheet.free);
+          placed = true;
+        }
+
+        if(!placed){
+          sheets.push(currentSheet);
+          currentSheet = {
+            free: [{x:0, y:0, w: usableW, h: usableH}],
+            placed: []
+          };
+
+          const fallback = placeInSheet(currentSheet, item);
+          if(fallback){
+            currentSheet = fallback;
+          }else{
+            warnings.push(`Деталь "${item.name}" не поместилась на листе.`);
+          }
+        }
+      }
+
+      sheets.push(currentSheet);
+
+      return { sheets, warnings };
+    }
+
+    function placeInSheet(sheet, item){
+      const rotations = item.g
+        ? [{w:item.l,h:item.w,rot:false},{w:item.w,h:item.l,rot:true}]
+        : [{w:item.l,h:item.w,rot:false}];
+
+      for(const rot of rotations){
+        for(const area of sheet.free){
+          if(rot.w <= area.w && rot.h <= area.h){
+            const placed = { item, x:area.x, y:area.y, w:rot.w, h:rot.h, rot:rot.rot };
+            sheet.placed.push(placed);
+            sheet.free = splitFreeArea(area, rot.w, rot.h, sheet.free);
+            return sheet;
+          }
+        }
+      }
+      return null;
+    }
+
+    function splitFreeArea(area, w, h, free){
+      const result = free.filter(f => f !== area);
+      const rightW = area.w - w;
+      const bottomH = area.h - h;
+
+      if(rightW > 0){
+        result.push({x: area.x + w, y: area.y, w: rightW, h: area.h});
+      }
+      if(bottomH > 0){
+        result.push({x: area.x, y: area.y + h, w: area.w, h: bottomH});
+      }
+
+      return result.filter(f => f.w > 0 && f.h > 0);
+    }
+
+    function buildCutListText(){
+      const lines = ["№;Название;Длина;Ширина;Количество;Текстура;Кромка"];
+      state.rows.forEach((row, idx) => {
+        if(!(row.l > 0 && row.w > 0)) return;
+        const qty = row.q > 0 ? row.q : 1;
+        lines.push(`${idx + 1};${row.name || ""};${row.l};${row.w};${qty};${row.g ? "вдоль" : "любое"};${JSON.stringify(row.e || defaultEdge())}`);
+      });
+      return lines.join("\n");
+    }
+
+    init();
+  </script>
+</body>
+</html>
